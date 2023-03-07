@@ -6,47 +6,60 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.TextView
+import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kbrannon.youpickfoodpicker.R
 import kbrannon.youpickfoodpicker.utils.SwipeToDeleteCallback
 import kbrannon.youpickfoodpicker.utils.SwipeToEditCallback
 import kbrannon.youpickfoodpicker.adapters.YouPickFoodPickerAdapter
 import kbrannon.youpickfoodpicker.database.DatabaseHandler
-import kbrannon.youpickfoodpicker.databinding.ActivityMainBinding
 import kbrannon.youpickfoodpicker.models.YouPickFoodPickerModel
 
 class MainActivity : AppCompatActivity() {
-
-    private var binding: ActivityMainBinding? = null
 
     companion object{
         var ADD_PLACE_ACTIVITY_REQUEST_CODE = 1
         var EXTRA_PLACE_DETAILS = "extra_place_details"
     }
 
+    private var toolbarMain: Toolbar? = null
+    private var rvFoodPlaces: RecyclerView? = null
+    private var tvNoRecordsAvailable: TextView? = null
+    private var fabAddFoodPlace: FloatingActionButton? = null
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        binding = ActivityMainBinding.inflate(layoutInflater)
 
         super.onCreate(savedInstanceState)
-        setContentView(binding?.root)
-        setSupportActionBar(binding?.toolbarMain)
+        setContentView(R.layout.activity_main)
+        toolbarMain = findViewById(R.id.toolbar_main)
+        setSupportActionBar(toolbarMain)
 
+        rvFoodPlaces = findViewById(R.id.rv_food_places)
+        tvNoRecordsAvailable = findViewById(R.id.tv_no_records_available)
+        fabAddFoodPlace = findViewById(R.id.fabAddFoodPlace)
 
-        binding?.fabAddFoodPlace?.setOnClickListener{
+        fabAddFoodPlace?.setOnClickListener{
             val intent = Intent(this@MainActivity, ChooseFoodPlace::class.java)
             startActivityForResult(intent, ADD_PLACE_ACTIVITY_REQUEST_CODE)
         }
-    getFoodPlaceFromLocalDatabase()
+
+        getFoodPlaceFromLocalDatabase()
+
+
     }
 
     private fun setupFoodPlacesRecyclerView(foodPlaceList: ArrayList<YouPickFoodPickerModel>){
-        binding?.rvFoodPlaces?.layoutManager = LinearLayoutManager(this)
+        rvFoodPlaces?.layoutManager = LinearLayoutManager(this)
 
-        binding?.rvFoodPlaces?.setHasFixedSize(true)
+        rvFoodPlaces?.setHasFixedSize(true)
 
         val placesAdapter = YouPickFoodPickerAdapter(this,foodPlaceList)
-        binding?.rvFoodPlaces?.adapter = placesAdapter
+        rvFoodPlaces?.adapter = placesAdapter
 
         placesAdapter.setOnClickListener(object: YouPickFoodPickerAdapter.OnClickListener{
             override fun onClick(position: Int, model: YouPickFoodPickerModel) {
@@ -58,23 +71,23 @@ class MainActivity : AppCompatActivity() {
 
         val editSwipeHandler = object: SwipeToEditCallback(this){
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val adapter = binding?.rvFoodPlaces?.adapter as YouPickFoodPickerAdapter
+                val adapter = rvFoodPlaces?.adapter as YouPickFoodPickerAdapter
                 adapter.notifyEditItem(this@MainActivity,viewHolder.adapterPosition, ADD_PLACE_ACTIVITY_REQUEST_CODE)
             }
         }
         val editItemTouchHelper = ItemTouchHelper(editSwipeHandler)
-        editItemTouchHelper.attachToRecyclerView(binding?.rvFoodPlaces)
+        editItemTouchHelper.attachToRecyclerView(rvFoodPlaces)
 
         val deleteSwipeHandler = object: SwipeToDeleteCallback(this){
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                val adapter = binding?.rvFoodPlaces?.adapter as YouPickFoodPickerAdapter
+                val adapter = rvFoodPlaces?.adapter as YouPickFoodPickerAdapter
                 adapter.removeAt(viewHolder.adapterPosition)
 
                 getFoodPlaceFromLocalDatabase()
             }
         }
         val deleteItemTouchHelper = ItemTouchHelper(deleteSwipeHandler)
-        deleteItemTouchHelper.attachToRecyclerView(binding?.rvFoodPlaces)
+        deleteItemTouchHelper.attachToRecyclerView(rvFoodPlaces)
     }
 
     private fun getFoodPlaceFromLocalDatabase(){
@@ -82,12 +95,12 @@ class MainActivity : AppCompatActivity() {
         val getFoodPlaceList: ArrayList<YouPickFoodPickerModel> = dbHandler.getFoodPlacesList()
 
         if(getFoodPlaceList.size > 0){
-            binding?.rvFoodPlaces?.visibility = View.VISIBLE
-            binding?.tvNoRecordsAvailable?.visibility = View.GONE
+            rvFoodPlaces?.visibility = View.VISIBLE
+            tvNoRecordsAvailable?.visibility = View.GONE
             setupFoodPlacesRecyclerView(getFoodPlaceList)
         }else{
-            binding?.rvFoodPlaces?.visibility = View.GONE
-            binding?.tvNoRecordsAvailable?.visibility = View.VISIBLE
+            rvFoodPlaces?.visibility = View.GONE
+            tvNoRecordsAvailable?.visibility = View.VISIBLE
         }
     }
 
@@ -100,10 +113,5 @@ class MainActivity : AppCompatActivity() {
                 Log.e("Activity", "Cancelled or Back pressed")
             }
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        binding = null
     }
 }

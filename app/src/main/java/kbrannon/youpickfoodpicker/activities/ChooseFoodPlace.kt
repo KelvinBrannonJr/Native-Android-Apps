@@ -29,7 +29,6 @@ import androidx.core.app.ActivityCompat
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.Autocomplete
-import com.google.android.libraries.places.widget.Autocomplete.getPlaceFromIntent
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import kbrannon.youpickfoodpicker.R
 import kbrannon.youpickfoodpicker.database.DatabaseHandler
@@ -42,8 +41,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.Exception
 import android.widget.Toast
+import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.*
 import com.google.android.libraries.places.widget.AutocompleteActivity
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
 import kbrannon.youpickfoodpicker.databinding.ActivityChooseFoodPlaceBinding
 import kbrannon.youpickfoodpicker.utils.GetAddressFromLatLng
 
@@ -80,7 +82,7 @@ class ChooseFoodPlace : AppCompatActivity(), View.OnClickListener {
         }
 
         if(intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)){
-            mFoodPlaceDetails = intent.getParcelableExtra(MainActivity.EXTRA_PLACE_DETAILS) as YouPickFoodPickerModel?
+            mFoodPlaceDetails = intent.getSerializableExtra(MainActivity.EXTRA_PLACE_DETAILS) as YouPickFoodPickerModel?
         }
 
 
@@ -191,11 +193,13 @@ class ChooseFoodPlace : AppCompatActivity(), View.OnClickListener {
                         Places.initialize(applicationContext,apiKey)
 
                     }
-                    val placesClient = Places.createClient(this)
                     val fields = listOf(Place.Field.ID, Place.Field.NAME)
+
+                    // Start the autocomplete intent.
                     val intent = Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
                         .build(this)
                     startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE)
+
                 }catch(e: Exception){
                     e.printStackTrace()
                 }
@@ -301,32 +305,6 @@ class ChooseFoodPlace : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
-            when (resultCode) {
-                Activity.RESULT_OK -> {
-                    data?.let {
-                        val place = getPlaceFromIntent(data)
-                        Log.i(TAG, "Place: ${place.name}, ${place.id}")
-                    }
-                }
-                AutocompleteActivity.RESULT_ERROR -> {
-                    // TODO: Handle the error.
-                    data?.let {
-                        val status = Autocomplete.getStatusFromIntent(data)
-                        Log.i(TAG, status.statusMessage ?: "")
-                    }
-                }
-                Activity.RESULT_CANCELED -> {
-                    // The user canceled the operation.
-                }
-            }
-            return
-        }
-        super.onActivityResult(requestCode, resultCode, data)
-    }
-
-
     private fun takePhotoFromCamera(){
         if(hasCameraPermission() && hasWriteExternalStoragePermission() && hasReadExternalStoragePermission()){
             val takeCameraPhotoIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
@@ -397,6 +375,38 @@ class ChooseFoodPlace : AppCompatActivity(), View.OnClickListener {
             ActivityCompat.requestPermissions(this, permissionsToRequest.toTypedArray(), 0)
         }
     }
+
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
+            when (resultCode) {
+                Activity.RESULT_OK -> {
+                    data?.let {
+                        val place = Autocomplete.getPlaceFromIntent(data)
+
+                        binding?.etLocation?.setText(place.name.toString())
+
+                        Log.i(TAG, "Place: ${place.name}, ${place.id}")
+                    }
+
+                }
+                AutocompleteActivity.RESULT_ERROR -> {
+                    // TODO: Handle the error.
+                    data?.let {
+                        val status = Autocomplete.getStatusFromIntent(data)
+                        Log.i(TAG, status.statusMessage ?: "")
+                    }
+                }
+                Activity.RESULT_CANCELED -> {
+                    // The user canceled the operation.
+                }
+            }
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
